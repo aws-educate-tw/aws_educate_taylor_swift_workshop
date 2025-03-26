@@ -18,6 +18,8 @@ export const Chat = ({ id }: { id: string }) => {
   const [description, setDescription] = React.useState("");
   const [isButtonDisabled, setIsButtonDisabled] = React.useState(true);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isInputDisabled, setIsInputDisabled] = React.useState(false);
+  const [nextChatId, setNextChatId] = React.useState<string | null>(null);
   const [
     {
       data: { messages, conversation },
@@ -81,6 +83,7 @@ export const Chat = ({ id }: { id: string }) => {
             setIsButtonDisabled(false);
             setImageUrl(data.imageUrl);
             setDescription(data.description);
+            setIsInputDisabled(true); // Disable chat input on valid response
           }
         },
         error: (error) => {
@@ -97,10 +100,14 @@ export const Chat = ({ id }: { id: string }) => {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    // Move to the next chat session
+    setNextChatId(`chat_${Date.now()}`); // Generate new chat ID
   };
 
   const handleNewMessage = (message: SendMesageParameters) => {
-    sendMessage(message);
+    if (!isInputDisabled) {
+      sendMessage(message);
+    }
 
     // Generate name for first user message if not already named
     if (!conversation?.name && messages.length === 0) {
@@ -120,6 +127,10 @@ export const Chat = ({ id }: { id: string }) => {
         });
     }
   };
+
+  if (nextChatId) {
+    return <Chat id={nextChatId} />;
+  }
 
   return (
     <View className="flex flex-col h-full w-full" padding="large">
@@ -149,9 +160,8 @@ export const Chat = ({ id }: { id: string }) => {
       </div>
       <div className="flex-grow overflow-auto">
         <AIConversation
-          // allowAttachments
           messages={messages}
-          handleSendMessage={handleNewMessage}
+          handleSendMessage={isInputDisabled ? undefined : handleNewMessage}
           isLoading={isLoading}
           aiContext={() => {
             return {
